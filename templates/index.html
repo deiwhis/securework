@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SecureWork — Sistema de Gestión Remoto</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#050c14;--surface:#0b1724;--card:#101e2e;--border:#1c3050;--accent:#00e5c8;--accent2:#0066ff;--danger:#ff4d6d;--muted:#4a6380;--text:#ddeeff;--subtext:#7fa0bf}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 20% 10%,rgba(0,230,200,.08) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 90%,rgba(0,102,255,.09) 0%,transparent 55%);pointer-events:none;z-index:0}
+    body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,230,200,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,230,200,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+    .wrapper{position:relative;z-index:1;width:100%;max-width:500px;padding:1.5rem}
+    .brand{text-align:center;margin-bottom:2rem;animation:fadeDown .6s ease both}
+    .brand-icon{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:.75rem;box-shadow:0 0 30px rgba(0,230,200,.3)}
+    .brand h1{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;letter-spacing:-.5px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .brand p{color:var(--subtext);font-size:.85rem;margin-top:.25rem}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem 2.25rem;box-shadow:0 24px 80px rgba(0,0,0,.5);animation:fadeUp .6s ease both .1s}
+    .steps{display:flex;align-items:center;gap:0;margin-bottom:2rem}
+    .step-item{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
+    .step-item:not(:last-child)::after{content:'';position:absolute;top:15px;left:60%;width:80%;height:2px;background:var(--border);transition:background .4s}
+    .step-item.done:not(:last-child)::after,.step-item.active:not(:last-child)::after{background:var(--accent)}
+    .step-dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:var(--muted);transition:all .3s;z-index:1}
+    .step-item.active .step-dot{border-color:var(--accent);background:rgba(0,230,200,.12);color:var(--accent);box-shadow:0 0 14px rgba(0,230,200,.4)}
+    .step-item.done .step-dot{border-color:var(--accent);background:var(--accent);color:#000}
+    .step-label{font-size:.65rem;margin-top:.35rem;color:var(--muted);text-align:center;transition:color .3s}
+    .step-item.active .step-label,.step-item.done .step-label{color:var(--accent)}
+    .panel{display:none;animation:fadeUp .35s ease both}
+    .panel.active{display:block}
+    .panel-title{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;margin-bottom:.3rem}
+    .panel-sub{color:var(--subtext);font-size:.85rem;margin-bottom:1.5rem}
+    .field{margin-bottom:1rem}
+    .field label{display:block;font-size:.78rem;font-weight:500;color:var(--subtext);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.5px}
+    .field input,.field select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.72rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;transition:border-color .25s,box-shadow .25s;appearance:none}
+    .field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,230,200,.12)}
+    .field input.err,.field select.err{border-color:var(--danger)}
+    .field .err-msg{font-size:.75rem;color:var(--danger);margin-top:.3rem;display:none}
+    .field input.err~.err-msg,.field select.err~.err-msg{display:block}
+    .pw-wrap{position:relative}
+    .pw-wrap input{padding-right:3rem}
+    .pw-eye{position:absolute;right:.85rem;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1rem;background:none;border:none;color:var(--muted);transition:color .2s}
+    .pw-eye:hover{color:var(--accent)}
+    .strength-bar{height:4px;border-radius:99px;background:var(--border);margin-top:.4rem;overflow:hidden}
+    .strength-fill{height:100%;width:0%;border-radius:99px;transition:width .3s,background .3s}
+    .strength-label{font-size:.72rem;color:var(--muted);margin-top:.25rem}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    .icon-field{position:relative}
+    .icon-field .icon{position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.95rem;pointer-events:none}
+    .icon-field input{padding-left:2.4rem}
+    .mfa-desc{background:rgba(0,230,200,.06);border:1px solid rgba(0,230,200,.2);border-radius:10px;padding:.85rem 1rem;font-size:.83rem;color:var(--subtext);margin-bottom:1.25rem;display:flex;align-items:center;gap:.75rem}
+    .mfa-desc .shield{font-size:1.4rem}
+    .otp-wrap{display:flex;gap:.5rem;justify-content:center;margin:1.25rem 0}
+    .otp-wrap input{width:46px;height:54px;text-align:center;font-size:1.3rem;font-weight:700;font-family:'Syne',sans-serif;background:var(--surface);border:2px solid var(--border);border-radius:10px;color:var(--text);outline:none;transition:border-color .25s,box-shadow .25s}
+    .otp-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,230,200,.15)}
+    .otp-wrap input.filled{border-color:var(--accent);color:var(--accent)}
+    .resend-wrap{text-align:center;font-size:.8rem;color:var(--subtext)}
+    .resend-wrap a{color:var(--accent);cursor:pointer;text-decoration:none}
+    .countdown{font-weight:600;color:var(--accent)}
+    .btn{width:100%;padding:.82rem;border-radius:11px;border:none;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .25s;margin-top:.5rem;letter-spacing:.3px}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;box-shadow:0 4px 24px rgba(0,230,200,.25)}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(0,230,200,.4)}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--subtext);margin-top:.75rem}
+    .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+    .switch-mode{text-align:center;font-size:.83rem;color:var(--subtext);margin-top:1.25rem}
+    .switch-mode a{color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none}
+    .success-wrap{text-align:center;padding:1rem 0}
+    .success-icon{width:72px;height:72px;background:rgba(0,230,200,.1);border:2px solid var(--accent);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:1.25rem;box-shadow:0 0 40px rgba(0,230,200,.25);animation:popIn .5s cubic-bezier(.34,1.56,.64,1) both}
+    .success-wrap h2{font-family:'Syne',sans-serif;font-size:1.3rem;margin-bottom:.5rem}
+    .success-wrap p{color:var(--subtext);font-size:.88rem;line-height:1.6}
+    .user-chip{display:inline-flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:.4rem 1rem;margin:1rem auto;font-size:.85rem}
+    .user-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+    .divider{display:flex;align-items:center;gap:.75rem;color:var(--muted);font-size:.75rem;margin:1rem 0}
+    .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+    #toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.7rem 1.2rem;font-size:.85rem;color:var(--text);box-shadow:0 8px 30px rgba(0,0,0,.4);transition:transform .35s ease;z-index:999;white-space:nowrap}
+    #toast.show{transform:translateX(-50%) translateY(0)}
+    #toast.ok{border-color:var(--accent);color:var(--accent)}
+    #toast.bad{border-color:var(--danger);color:var(--danger)}
+    .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,0,0,.3);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+    @keyframes popIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="brand">
+    <div class="brand-icon">🔐</div>
+    <h1>SecureWork</h1>
+    <p>Sistema de Gestión Remoto · Universidad ECCI</p>
+  </div>
+
+  <!-- ===== REGISTRO ===== -->
+  <div id="registerCard" class="card">
+    <div class="steps" id="stepsBar">
+      <div class="step-item active" data-step="0"><div class="step-dot">1</div><span class="step-label">Cuenta</span></div>
+      <div class="step-item"        data-step="1"><div class="step-dot">2</div><span class="step-label">Datos</span></div>
+      <div class="step-item"        data-step="2"><div class="step-dot">3</div><span class="step-label">Verificar</span></div>
+    </div>
+
+    <!-- Paso 1 -->
+    <div class="panel active" id="step0">
+      <div class="panel-title">Crea tu cuenta</div>
+      <div class="panel-sub">Ingresa correo y contraseña segura</div>
+      <div class="field icon-field">
+        <label>Correo electrónico</label>
+        <span class="icon">✉</span>
+        <input type="email" id="reg_email" placeholder="correo@empresa.com"/>
+        <div class="err-msg">Correo inválido</div>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <div class="pw-wrap">
+          <input type="password" id="reg_pass" placeholder="Mínimo 8 caracteres" oninput="checkStrength()"/>
+          <button class="pw-eye" onclick="togglePw('reg_pass',this)" type="button">👁</button>
+        </div>
+        <div class="strength-bar"><div class="strength-fill" id="sBar"></div></div>
+        <div class="strength-label" id="sLabel">Escribe una contraseña</div>
+        <div class="err-msg">Mínimo 8 caracteres</div>
+      </div>
+      <div class="field">
+        <label>Confirmar contraseña</label>
+        <div class="pw-wrap">
+          <input type="password" id="reg_pass2" placeholder="Repite tu contraseña"/>
+          <button class="pw-eye" onclick="togglePw('reg_pass2',this)" type="button">👁</button>
+        </div>
+        <div class="err-msg">Las contraseñas no coinciden</div>
+      </div>
+      <div class="field">
+        <label>Rol en el sistema</label>
+        <select id="reg_rol">
+          <option value="">— Selecciona rol —</option>
+          <option value="admin">Administrador del Sistema</option>
+          <option value="ti">Área de TI</option>
+          <option value="seguridad">Seguridad Informática</option>
+          <option value="rrhh">Recursos Humanos</option>
+        </select>
+        <div class="err-msg">Selecciona un rol</div>
+      </div>
+      <button class="btn btn-primary" onclick="goStep(1)">Continuar →</button>
+      <div class="switch-mode">¿Ya tienes cuenta? <a onclick="showLogin()">Iniciar sesión</a></div>
+    </div>
+
+    <!-- Paso 2 -->
+    <div class="panel" id="step1">
+      <div class="panel-title">Información personal</div>
+      <div class="panel-sub">Completa tus datos generales en el sistema</div>
+      <div class="two-col">
+        <div class="field">
+          <label>Nombre</label>
+          <input type="text" id="reg_nombre" placeholder="Ana María"/>
+          <div class="err-msg">Requerido</div>
+        </div>
+        <div class="field">
+          <label>Apellido</label>
+          <input type="text" id="reg_apellido" placeholder="Leal Martínez"/>
+          <div class="err-msg">Requerido</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Cargo</label>
+        <input type="text" id="reg_cargo" placeholder="Analista de Seguridad"/>
+        <div class="err-msg">Requerido</div>
+      </div>
+      <div class="field">
+        <label>Área organizacional</label>
+        <select id="reg_area">
+          <option value="">Cargando áreas...</option>
+        </select>
+        <div class="err-msg">Selecciona un área</div>
+      </div>
+      <div class="field">
+        <label>Fecha de ingreso</label>
+        <input type="date" id="reg_fecha"/>
+        <div class="err-msg">Requerido</div>
+      </div>
+      <div class="field">
+        <label>Estado</label>
+        <select id="reg_estado">
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btnEnviarOtp" onclick="enviarRegistro()">Enviar código de verificación →</button>
+      <button class="btn btn-ghost" onclick="goStep(0)">← Volver</button>
+    </div>
+
+    <!-- Paso 3 MFA -->
+    <div class="panel" id="step2">
+      <div class="panel-title">Verificación multifactor</div>
+      <div class="panel-sub">Hemos enviado un código a tu correo</div>
+      <div class="mfa-desc">
+        <span class="shield">🛡</span>
+        <span>Ingresa el código de 6 dígitos enviado a <strong id="mfaEmail"></strong>. Expira en <span class="countdown" id="cdTimer">02:00</span>.</span>
+      </div>
+      <div class="otp-wrap" id="otpWrap">
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpNext(this,0,'otpWrap')" onkeydown="otpBack(this,event)"/>
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpNext(this,1,'otpWrap')" onkeydown="otpBack(this,event)"/>
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpNext(this,2,'otpWrap')" onkeydown="otpBack(this,event)"/>
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpNext(this,3,'otpWrap')" onkeydown="otpBack(this,event)"/>
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpNext(this,4,'otpWrap')" onkeydown="otpBack(this,event)"/>
+        <input type="text" maxlength="1" class="otp-digit" oninput="otpNext(this,5,'otpWrap')" onkeydown="otpBack(this,event)"/>
+      </div>
+      <div class="resend-wrap">¿No llegó? <a onclick="reenviarOtp()" id="resendLink">Reenviar código</a></div>
+      <button class="btn btn-primary" id="btnVerificarReg" onclick="verificarRegistro()">Verificar y crear cuenta →</button>
+      <button class="btn btn-ghost" onclick="goStep(1)">← Volver</button>
+    </div>
+
+    <!-- Éxito -->
+    <div class="panel" id="step3">
+      <div class="success-wrap">
+        <div class="success-icon">✅</div>
+        <h2>¡Cuenta creada!</h2>
+        <p>Tu cuenta ha sido registrada correctamente en SecureWork.</p>
+        <div class="user-chip"><span class="dot"></span><span id="successEmail"></span></div>
+        <p style="font-size:.8rem;color:var(--muted);margin-top:.5rem">La próxima vez podrás acceder directamente con tus credenciales.</p>
+        <button class="btn btn-primary" style="margin-top:1.5rem" onclick="showLogin()">Ir al inicio de sesión →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LOGIN ===== -->
+  <div id="loginCard" class="card" style="display:none">
+    <div class="panel-title">Bienvenido de nuevo</div>
+    <div class="panel-sub">Acceso rápido con tus credenciales</div>
+    <div class="field icon-field">
+      <label>Correo electrónico</label>
+      <span class="icon">✉</span>
+      <input type="email" id="log_email" placeholder="correo@empresa.com"/>
+      <div class="err-msg">Correo inválido</div>
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <div class="pw-wrap">
+        <input type="password" id="log_pass" placeholder="Tu contraseña" onkeydown="if(e&&e.key==='Enter')doLogin()"/>
+        <button class="pw-eye" onclick="togglePw('log_pass',this)" type="button">👁</button>
+      </div>
+      <div class="err-msg">Contraseña requerida</div>
+    </div>
+    <!-- OTP login -->
+    <div id="loginMfaSection" style="display:none">
+      <div class="mfa-desc">
+        <span class="shield">🛡</span>
+        <span>Segundo factor activo. Ingresa el código enviado a tu correo. Expira en <span class="countdown" id="cdLogin">02:00</span>.</span>
+      </div>
+      <div class="otp-wrap" id="loginOtpWrap">
+        <input type="text" maxlength="1" class="otp-digit lotp" oninput="otpNext(this,0,'loginOtpWrap')" onkeydown="otpBack(this,event)"/>
+        <input type="text" maxlength="1" class="otp-digit lotp" oninput="otpNext(this,1,'loginOtpWrap')" onkeydown="otpBack(this,event)"/>
+        <input type="text" maxlength="1" class="otp-digit lotp" oninput="otpNext(this,2,'loginOtpWrap')" onkeydown="otpBack(this,event)"/>
+        <input type="text" maxlength="1" class="otp-digit lotp" oninput="otpNext(this,3,'loginOtpWrap')" onkeydown="otpBack(this,event)"/>
+        <input type="text" maxlength="1" class="otp-digit lotp" oninput="otpNext(this,4,'loginOtpWrap')" onkeydown="otpBack(this,event)"/>
+        <input type="text" maxlength="1" class="otp-digit lotp" oninput="otpNext(this,5,'loginOtpWrap')" onkeydown="otpBack(this,event)"/>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">Iniciar sesión →</button>
+    <div class="divider">o</div>
+    <div class="switch-mode">¿No tienes cuenta? <a onclick="showRegister()">Regístrate aquí</a></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ───── Estado global ───── */
+let currentStep = 0;
+let idEmpleado  = null;
+let cdInterval  = null;
+let loginMfaActivo = false;
+
+/* ───── Utilidades ───── */
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  setTimeout(() => t.className = '', 3500);
+}
+
+function setLoading(btnId, loading, text) {
+  const b = document.getElementById(btnId);
+  if (!b) return;
+  b.disabled = loading;
+  b.innerHTML = loading ? `<span class="spinner"></span>${text}` : text;
+}
+
+function togglePw(id, btn) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+  btn.textContent = el.type === 'password' ? '👁' : '🙈';
+}
+
+function checkStrength() {
+  const pw = document.getElementById('reg_pass').value;
+  const bar = document.getElementById('sBar');
+  const lbl = document.getElementById('sLabel');
+  let score = 0;
+  if (pw.length >= 8)       score++;
+  if (/[A-Z]/.test(pw))     score++;
+  if (/[0-9]/.test(pw))     score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const c = ['#ff4d6d','#ff9a3c','#f7d716','#00e5c8'];
+  const l = ['Muy débil','Débil','Media','Fuerte'];
+  const w = ['25%','50%','75%','100%'];
+  bar.style.width = score ? w[score-1] : '0%';
+  bar.style.background = score ? c[score-1] : '';
+  lbl.textContent = score ? l[score-1] : 'Escribe una contraseña';
+}
+
+function validateEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+function setErr(id, flag) {
+  document.getElementById(id).classList.toggle('err', flag);
+}
+
+/* ───── Steps UI ───── */
+function setStepUI(n) {
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i===n));
+  document.querySelectorAll('.step-item').forEach((s,i) => {
+    s.classList.remove('active','done');
+    if (i < n)  s.classList.add('done');
+    if (i === n) s.classList.add('active');
+  });
+  currentStep = n;
+  document.getElementById('stepsBar').style.display = n === 3 ? 'none' : 'flex';
+}
+
+function goStep(n) {
+  if (n === 1 && !validateStep0()) return;
+  setStepUI(n);
+}
+
+function validateStep0() {
+  const email = document.getElementById('reg_email').value.trim();
+  const pass  = document.getElementById('reg_pass').value;
+  const pass2 = document.getElementById('reg_pass2').value;
+  const rol   = document.getElementById('reg_rol').value;
+  let ok = true;
+  setErr('reg_email', !validateEmail(email)); if (!validateEmail(email)) ok=false;
+  setErr('reg_pass',  pass.length < 8);       if (pass.length < 8) ok=false;
+  setErr('reg_pass2', pass !== pass2);         if (pass !== pass2)  ok=false;
+  setErr('reg_rol',   !rol);                   if (!rol) ok=false;
+  if (!ok) toast('Revisa los campos marcados', 'bad');
+  return ok;
+}
+
+/* ───── OTP helpers ───── */
+function otpNext(el, idx, wrapId) {
+  el.value = el.value.replace(/\D/,'');
+  if (el.value) {
+    el.classList.add('filled');
+    const next = document.querySelectorAll(`#${wrapId} .otp-digit`)[idx+1];
+    if (next) next.focus();
+  } else el.classList.remove('filled');
+}
+function otpBack(el, e) {
+  if (e.key === 'Backspace' && !el.value) {
+    const wrap = el.closest('.otp-wrap');
+    const all  = wrap ? [...wrap.querySelectorAll('input')] : [];
+    const idx  = all.indexOf(el);
+    if (idx > 0) { all[idx-1].value=''; all[idx-1].classList.remove('filled'); all[idx-1].focus(); }
+  }
+}
+function getOTP(wrapId) {
+  return [...document.querySelectorAll(`#${wrapId} .otp-digit`)].map(i=>i.value).join('');
+}
+
+function startCountdown(elId) {
+  clearInterval(cdInterval);
+  let s = 120;
+  const el = document.getElementById(elId);
+  cdInterval = setInterval(() => {
+    s--;
+    el.textContent = String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+    if (s<=0) clearInterval(cdInterval);
+  }, 1000);
+}
+
+/* ───── API calls ───── */
+async function api(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+/* ───── Cargar áreas desde backend ───── */
+async function cargarAreas() {
+  try {
+    const r = await fetch('/api/areas');
+    const d = await r.json();
+    const sel = document.getElementById('reg_area');
+    sel.innerHTML = '<option value="">— Selecciona área —</option>';
+    if (d.ok) d.areas.forEach(a => {
+      sel.innerHTML += `<option value="${a.id_area}">${a.nombre_area}</option>`;
+    });
+  } catch { /* en demo sin backend, dejar opciones por defecto */
+    document.getElementById('reg_area').innerHTML = `
+      <option value="">— Selecciona área —</option>
+      <option value="1">Tecnología de la Información (TI)</option>
+      <option value="2">Seguridad Informática</option>
+      <option value="3">Recursos Humanos</option>
+      <option value="4">Dirección General</option>
+      <option value="5">Operaciones</option>`;
+  }
+}
+cargarAreas();
+
+/* ───── Registro: enviar datos + OTP ───── */
+async function enviarRegistro() {
+  const nombre   = document.getElementById('reg_nombre').value.trim();
+  const apellido = document.getElementById('reg_apellido').value.trim();
+  const cargo    = document.getElementById('reg_cargo').value.trim();
+  const area     = document.getElementById('reg_area').value;
+  const fecha    = document.getElementById('reg_fecha').value;
+  let ok = true;
+  setErr('reg_nombre',  !nombre);   if (!nombre)  ok=false;
+  setErr('reg_apellido',!apellido); if (!apellido) ok=false;
+  setErr('reg_cargo',   !cargo);    if (!cargo)    ok=false;
+  setErr('reg_area',    !area);     if (!area)     ok=false;
+  setErr('reg_fecha',   !fecha);    if (!fecha)    ok=false;
+  if (!ok) { toast('Completa todos los campos','bad'); return; }
+
+  setLoading('btnEnviarOtp', true, 'Enviando...');
+  try {
+    const d = await api('/api/registro/iniciar', {
+      correo:        document.getElementById('reg_email').value.trim().toLowerCase(),
+      password:      document.getElementById('reg_pass').value,
+      rol:           document.getElementById('reg_rol').value,
+      nombre, apellido, cargo,
+      id_area:       area,
+      fecha_ingreso: fecha,
+      estado:        document.getElementById('reg_estado').value
+    });
+    if (d.ok) {
+      idEmpleado = d.id_empleado;
+      document.getElementById('mfaEmail').textContent =
+        document.getElementById('reg_email').value.trim();
+      startCountdown('cdTimer');
+      setStepUI(2);
+      toast('Código enviado al correo (o revisa la consola del servidor)','ok');
+    } else {
+      toast(d.msg || 'Error al registrar','bad');
+    }
+  } catch {
+    toast('No se pudo conectar con el servidor','bad');
+  } finally {
+    setLoading('btnEnviarOtp', false, 'Enviar código de verificación →');
+  }
+}
+
+/* ───── Registro: verificar OTP ───── */
+async function verificarRegistro() {
+  const otp = getOTP('otpWrap');
+  if (otp.length < 6) { toast('Ingresa el código completo','bad'); return; }
+  setLoading('btnVerificarReg', true, 'Verificando...');
+  try {
+    const d = await api('/api/registro/verificar', { id_empleado: idEmpleado, otp });
+    if (d.ok) {
+      document.getElementById('successEmail').textContent =
+        document.getElementById('reg_email').value.trim();
+      clearInterval(cdInterval);
+      setStepUI(3);
+      toast('¡Cuenta creada exitosamente!','ok');
+    } else {
+      toast(d.msg || 'Código incorrecto','bad');
+    }
+  } catch {
+    toast('Error al verificar','bad');
+  } finally {
+    setLoading('btnVerificarReg', false, 'Verificar y crear cuenta →');
+  }
+}
+
+/* ───── Reenviar OTP registro ───── */
+async function reenviarOtp() {
+  const d = await api('/api/registro/reenviar', { id_empleado: idEmpleado });
+  if (d.ok) { startCountdown('cdTimer'); toast('Nuevo código enviado','ok'); }
+  else toast(d.msg,'bad');
+}
+
+/* ───── Login ───── */
+async function doLogin() {
+  const email = document.getElementById('log_email').value.trim().toLowerCase();
+  const pass  = document.getElementById('log_pass').value;
+  if (!validateEmail(email)) { toast('Correo inválido','bad'); return; }
+
+  if (!loginMfaActivo) {
+    // Paso 1: credenciales
+    if (!pass) { toast('Ingresa tu contraseña','bad'); return; }
+    setLoading('loginBtn', true, 'Verificando...');
+    try {
+      const d = await api('/api/login', { correo: email, password: pass });
+      if (d.ok) {
+        idEmpleado = d.id_empleado;
+        document.getElementById('loginMfaSection').style.display = 'block';
+        document.getElementById('loginBtn').textContent = 'Confirmar código →';
+        startCountdown('cdLogin');
+        loginMfaActivo = true;
+        toast(`Código enviado. Bienvenido ${d.nombre}! Verifica tu correo.`,'ok');
+      } else {
+        toast(d.msg || 'Credenciales incorrectas','bad');
+      }
+    } catch {
+      toast('No se pudo conectar con el servidor','bad');
+    } finally {
+      setLoading('loginBtn', false,
+        loginMfaActivo ? 'Confirmar código →' : 'Iniciar sesión →');
+    }
+  } else {
+    // Paso 2: OTP
+    const otp = getOTP('loginOtpWrap');
+    if (otp.length < 6) { toast('Ingresa el código completo','bad'); return; }
+    setLoading('loginBtn', true, 'Verificando...');
+    try {
+      const d = await api('/api/login/verificar', { id_empleado: idEmpleado, otp });
+      if (d.ok) {
+        clearInterval(cdInterval);
+        toast(`✅ Bienvenido, ${d.nombre} ${d.apellido}!`,'ok');
+        // Guardar datos de sesión para el dashboard
+        sessionStorage.setItem('sw_session', JSON.stringify({
+          id_empleado: d.id_empleado,
+          nombre:  d.nombre + ' ' + d.apellido,
+          rol:     d.rol
+        }));
+        setTimeout(() => window.location.href = '/dashboard', 800);
+      } else {
+        toast(d.msg || 'Código incorrecto','bad');
+      }
+    } catch {
+      toast('Error al verificar','bad');
+    } finally {
+      setLoading('loginBtn', false, 'Confirmar código →');
+    }
+  }
+}
+
+/* ───── Navegación entre formularios ───── */
+function showLogin() {
+  document.getElementById('registerCard').style.display = 'none';
+  document.getElementById('loginCard').style.display = 'block';
+  loginMfaActivo = false;
+  document.getElementById('loginMfaSection').style.display = 'none';
+  document.getElementById('loginBtn').textContent = 'Iniciar sesión →';
+  // Pre-fill si viene del registro
+  const email = document.getElementById('reg_email').value.trim();
+  if (email) document.getElementById('log_email').value = email;
+}
+function showRegister() {
+  document.getElementById('loginCard').style.display = 'none';
+  document.getElementById('registerCard').style.display = 'block';
+}
+</script>
+</body>
+</html>

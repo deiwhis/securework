@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SecureWork — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:       #060d18;
+      --surface:  #0c1825;
+      --card:     #111f30;
+      --border:   #1a3050;
+      --accent:   #00e5c8;
+      --accent2:  #0055ff;
+      --warn:     #ffb020;
+      --danger:   #ff4060;
+      --success:  #00d68f;
+      --muted:    #3a5570;
+      --text:     #d8eeff;
+      --sub:      #6a90b0;
+      --sidebar:  220px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; overflow-x: hidden; }
+
+    /* ── Fondo ── */
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 10% 0%, rgba(0,230,200,.07) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 35% at 90% 100%, rgba(0,85,255,.08) 0%, transparent 55%);
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar); min-height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      position: fixed; left: 0; top: 0; bottom: 0;
+      z-index: 10;
+    }
+    .sb-brand {
+      padding: 1.5rem 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sb-brand .logo {
+      display: flex; align-items: center; gap: .6rem;
+    }
+    .sb-brand .icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .95rem;
+    }
+    .sb-brand h2 {
+      font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .sb-user {
+      padding: .85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      font-size: .78rem;
+    }
+    .sb-user .name { font-weight: 600; color: var(--text); }
+    .sb-user .role {
+      color: var(--accent); font-size: .7rem;
+      background: rgba(0,230,200,.1); border-radius: 99px;
+      padding: .15rem .5rem; display: inline-block; margin-top: .2rem;
+    }
+    .sb-nav { flex: 1; padding: .75rem 0; overflow-y: auto; }
+    .sb-section {
+      font-size: .62rem; font-weight: 700; letter-spacing: 1.5px;
+      color: var(--muted); padding: .75rem 1.25rem .35rem;
+      text-transform: uppercase;
+    }
+    .sb-item {
+      display: flex; align-items: center; gap: .65rem;
+      padding: .6rem 1.25rem;
+      color: var(--sub); font-size: .85rem;
+      cursor: pointer; transition: all .2s;
+      border-left: 3px solid transparent;
+      user-select: none;
+    }
+    .sb-item:hover { background: rgba(0,230,200,.05); color: var(--text); }
+    .sb-item.active {
+      color: var(--accent); background: rgba(0,230,200,.08);
+      border-left-color: var(--accent);
+    }
+    .sb-item .ico { font-size: 1rem; width: 20px; text-align: center; }
+    .sb-badge {
+      margin-left: auto; background: var(--danger);
+      color: #fff; font-size: .6rem; font-weight: 700;
+      padding: .1rem .4rem; border-radius: 99px;
+    }
+    .sb-footer {
+      padding: 1rem 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+    .btn-logout {
+      width: 100%; padding: .55rem;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--sub); font-size: .8rem;
+      cursor: pointer; transition: all .2s; font-family: 'DM Sans', sans-serif;
+    }
+    .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── Main ── */
+    .main {
+      margin-left: var(--sidebar);
+      flex: 1; min-height: 100vh;
+      display: flex; flex-direction: column;
+      position: relative; z-index: 1;
+    }
+    .topbar {
+      background: rgba(12,24,37,.8); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 5;
+    }
+    .topbar h1 { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 700; }
+    .topbar .breadcrumb { font-size: .75rem; color: var(--sub); margin-top: .1rem; }
+    .topbar-right { display: flex; align-items: center; gap: .75rem; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--success); box-shadow: 0 0 8px var(--success);
+    }
+    .status-txt { font-size: .78rem; color: var(--sub); }
+
+    .content { padding: 2rem; flex: 1; }
+
+    /* ── Secciones ── */
+    .section { display: none; animation: fadeUp .35s ease both; }
+    .section.active { display: block; }
+
+    /* ── KPI Cards ── */
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem; margin-bottom: 2rem;
+    }
+    .kpi {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.25rem;
+      transition: transform .2s, border-color .2s;
+    }
+    .kpi:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .kpi .kpi-icon { font-size: 1.5rem; margin-bottom: .5rem; }
+    .kpi .kpi-val {
+      font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800;
+      line-height: 1; color: var(--accent);
+    }
+    .kpi .kpi-label { font-size: .75rem; color: var(--sub); margin-top: .25rem; }
+
+    /* ── Tabla ── */
+    .table-wrap {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .table-header {
+      padding: 1.1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .table-header h3 { font-family: 'Syne', sans-serif; font-size: .95rem; font-weight: 700; }
+    .table-actions { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+    .search-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: .45rem .85rem;
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: .82rem;
+      outline: none; width: 200px; transition: border-color .2s;
+    }
+    .search-box:focus { border-color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left; padding: .7rem 1.25rem;
+      font-size: .68rem; font-weight: 700; letter-spacing: .8px;
+      text-transform: uppercase; color: var(--sub);
+      background: rgba(0,0,0,.15);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: .75rem 1.25rem; font-size: .83rem;
+      border-bottom: 1px solid rgba(26,48,80,.5);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(0,230,200,.03); }
+    .empty-row td {
+      text-align: center; color: var(--muted); padding: 2.5rem;
+      font-style: italic; font-size: .85rem;
+    }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: .2rem .65rem;
+      border-radius: 99px; font-size: .7rem; font-weight: 600;
+    }
+    .badge-green  { background: rgba(0,214,143,.12); color: var(--success); }
+    .badge-red    { background: rgba(255,64,96,.12); color: var(--danger); }
+    .badge-yellow { background: rgba(255,176,32,.12); color: var(--warn); }
+    .badge-blue   { background: rgba(0,85,255,.12); color: #6fa8ff; }
+    .badge-gray   { background: rgba(58,85,112,.2); color: var(--sub); }
+
+    /* ── Botones ── */
+    .btn {
+      padding: .48rem .95rem; border-radius: 8px; border: none;
+      font-family: 'Syne', sans-serif; font-size: .78rem; font-weight: 700;
+      cursor: pointer; transition: all .2s; display: inline-flex;
+      align-items: center; gap: .4rem;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #000; }
+    .btn-primary:hover { opacity: .85; transform: translateY(-1px); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--sub); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: rgba(255,64,96,.1); border: 1px solid var(--danger); color: var(--danger); }
+    .btn-danger:hover { background: rgba(255,64,96,.2); }
+    .btn-sm { padding: .3rem .65rem; font-size: .72rem; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.65); z-index: 100;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 18px; padding: 1.75rem;
+      width: min(520px, 92vw); max-height: 88vh; overflow-y: auto;
+      animation: fadeUp .3s ease both;
+    }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .modal-head h3 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; }
+    .modal-close {
+      background: none; border: none; color: var(--sub); font-size: 1.1rem;
+      cursor: pointer; transition: color .2s;
+    }
+    .modal-close:hover { color: var(--danger); }
+    .form-field { margin-bottom: .9rem; }
+    .form-field label {
+      display: block; font-size: .72rem; font-weight: 600;
+      color: var(--sub); margin-bottom: .35rem;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .form-field input, .form-field select, .form-field textarea {
+      width: 100%; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 9px;
+      padding: .65rem .9rem; color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: .88rem;
+      outline: none; transition: border-color .2s;
+      appearance: none;
+    }
+    .form-field textarea { resize: vertical; min-height: 80px; }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+      border-color: var(--accent);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .modal-foot { display: flex; gap: .6rem; justify-content: flex-end; margin-top: 1.25rem; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: .7rem 1.1rem;
+      font-size: .83rem; box-shadow: 0 8px 30px rgba(0,0,0,.4);
+      transform: translateY(80px); opacity: 0;
+      transition: all .35s ease; z-index: 200;
+    }
+    #toast.show { transform: none; opacity: 1; }
+    #toast.ok  { border-color: var(--success); color: var(--success); }
+    #toast.bad { border-color: var(--danger);  color: var(--danger); }
+    #toast.warn{ border-color: var(--warn);    color: var(--warn); }
+
+    /* ── Home widgets ── */
+    .home-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .widget {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.25rem;
+    }
+    .widget h4 { font-family: 'Syne', sans-serif; font-size: .85rem; margin-bottom: 1rem; color: var(--sub); }
+    .activity-item {
+      display: flex; gap: .75rem; align-items: flex-start;
+      padding: .5rem 0; border-bottom: 1px solid rgba(26,48,80,.4);
+      font-size: .8rem;
+    }
+    .activity-item:last-child { border: none; }
+    .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .activity-time { color: var(--muted); font-size: .72rem; margin-top: .15rem; }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(0,0,0,.2); border-top-color: #000;
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px) } to { opacity:1; transform:none } }
+    @keyframes spin   { to { transform: rotate(360deg) } }
+  </style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="logo">
+      <div class="icon">🔐</div>
+      <h2>SecureWork</h2>
+    </div>
+  </div>
+  <div class="sb-user">
+    <div class="name" id="sbNombre">Cargando...</div>
+    <div class="role" id="sbRol">—</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">General</div>
+    <div class="sb-item active" onclick="goTo('home')">
+      <span class="ico">🏠</span> Dashboard
+    </div>
+
+    <div class="sb-section">Gestión</div>
+    <div class="sb-item" onclick="goTo('empleados')">
+      <span class="ico">👥</span> Empleados
+    </div>
+    <div class="sb-item" onclick="goTo('dispositivos')">
+      <span class="ico">💻</span> Dispositivos
+    </div>
+    <div class="sb-item" onclick="goTo('sistemas')">
+      <span class="ico">🖧</span> Sistemas & Accesos
+    </div>
+
+    <div class="sb-section">Seguridad</div>
+    <div class="sb-item" onclick="goTo('incidentes')">
+      <span class="ico">⚠️</span> Incidentes
+      <span class="sb-badge" id="badgeInc">0</span>
+    </div>
+    <div class="sb-item" onclick="goTo('auditoria')">
+      <span class="ico">📋</span> Auditoría
+    </div>
+
+    <div class="sb-section">Formación</div>
+    <div class="sb-item" onclick="goTo('capacitaciones')">
+      <span class="ico">🎓</span> Capacitaciones
+    </div>
+
+    <div class="sb-section">Config.</div>
+    <div class="sb-item" onclick="goTo('areas')">
+      <span class="ico">🏢</span> Áreas
+    </div>
+  </nav>
+  <div class="sb-footer">
+    <button class="btn-logout" onclick="logout()">Cerrar sesión →</button>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <h1 id="pageTitle">Dashboard</h1>
+      <div class="breadcrumb" id="pageBreadcrumb">SecureWork / Inicio</div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-dot"></div>
+      <span class="status-txt">Sistema operativo</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── HOME ── -->
+    <div id="sec-home" class="section active">
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi"><div class="kpi-icon">👥</div><div class="kpi-val" id="kpiEmp">—</div><div class="kpi-label">Empleados activos</div></div>
+        <div class="kpi"><div class="kpi-icon">💻</div><div class="kpi-val" id="kpiDisp">—</div><div class="kpi-label">Dispositivos</div></div>
+        <div class="kpi"><div class="kpi-icon">⚠️</div><div class="kpi-val" id="kpiInc">—</div><div class="kpi-label">Incidentes abiertos</div></div>
+        <div class="kpi"><div class="kpi-icon">🎓</div><div class="kpi-val" id="kpiCap">—</div><div class="kpi-label">Capacitaciones</div></div>
+        <div class="kpi"><div class="kpi-icon">🖧</div><div class="kpi-val" id="kpiSis">—</div><div class="kpi-label">Sistemas registrados</div></div>
+        <div class="kpi"><div class="kpi-icon">🔑</div><div class="kpi-val" id="kpiAcc">—</div><div class="kpi-label">Accesos activos</div></div>
+      </div>
+      <div class="home-grid">
+        <div class="widget">
+          <h4>📋 Actividad reciente</h4>
+          <div id="actividadList"><div style="color:var(--muted);font-size:.82rem">Cargando...</div></div>
+        </div>
+        <div class="widget">
+          <h4>⚠️ Incidentes abiertos</h4>
+          <div id="incidentesHome"><div style="color:var(--muted);font-size:.82rem">Cargando...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EMPLEADOS ── -->
+    <div id="sec-empleados" class="section">
+      <div class="table-wrap">
+        <div class="table-header">
+          <h3>👥 Empleados registrados</h3>
+          <div class="table-actions">
+            <input class="search-box" placeholder="Buscar..." oninput="filtrarTabla('tbEmp',this.value)"/>
+          </div>
+        </div>
+        <table id="tbEmp">
+          <thead><tr><th>Nombre</th><th>Correo</th><th>Cargo</th><th>Área</th><th>Rol</th><th>Estado</th><th>Ingreso</th></tr></thead>
+          <tbody id="tbEmpBody"><tr class="empty-row"><td colspan="7">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── DISPOSITIVOS ── -->
+    <div id="sec-dispositivos" class="section">
+      <div class="table-wrap">
+        <div class="table-header">
+          <h3>💻 Dispositivos</h3>
+          <div class="table-actions">
+            <input class="search-box" placeholder="Buscar..." oninput="filtrarTabla('tbDisp',this.value)"/>
+            <button class="btn btn-primary" onclick="abrirModal('modalDisp')">+ Nuevo</button>
+          </div>
+        </div>
+        <table id="tbDisp">
+          <thead><tr><th>Tipo</th><th>Marca / Modelo</th><th>Serial</th><th>Asignado a</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="tbDispBody"><tr class="empty-row"><td colspan="6">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── SISTEMAS & ACCESOS ── -->
+    <div id="sec-sistemas" class="section">
+      <div class="table-wrap" style="margin-bottom:1.5rem">
+        <div class="table-header">
+          <h3>🖧 Sistemas</h3>
+          <div class="table-actions">
+            <button class="btn btn-primary" onclick="abrirModal('modalSis')">+ Nuevo sistema</button>
+          </div>
+        </div>
+        <table id="tbSis">
+          <thead><tr><th>Sistema</th><th>Descripción</th><th>Empleados con acceso</th></tr></thead>
+          <tbody id="tbSisBody"><tr class="empty-row"><td colspan="3">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <h3>🔑 Accesos asignados</h3>
+          <div class="table-actions">
+            <button class="btn btn-primary" onclick="abrirModal('modalAcc')">+ Asignar acceso</button>
+          </div>
+        </div>
+        <table id="tbAcc">
+          <thead><tr><th>Empleado</th><th>Sistema</th><th>Nivel</th><th>Desde</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="tbAccBody"><tr class="empty-row"><td colspan="6">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── INCIDENTES ── -->
+    <div id="sec-incidentes" class="section">
+      <div class="table-wrap">
+        <div class="table-header">
+          <h3>⚠️ Incidentes de seguridad</h3>
+          <div class="table-actions">
+            <input class="search-box" placeholder="Buscar..." oninput="filtrarTabla('tbInc',this.value)"/>
+            <button class="btn btn-primary" onclick="abrirModal('modalInc')">+ Reportar</button>
+          </div>
+        </div>
+        <table id="tbInc">
+          <thead><tr><th>Tipo</th><th>Descripción</th><th>Reportado por</th><th>Dispositivo</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="tbIncBody"><tr class="empty-row"><td colspan="7">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── AUDITORÍA ── -->
+    <div id="sec-auditoria" class="section">
+      <div class="table-wrap">
+        <div class="table-header">
+          <h3>📋 Registro de auditoría</h3>
+          <div class="table-actions">
+            <input class="search-box" placeholder="Buscar..." oninput="filtrarTabla('tbAud',this.value)"/>
+          </div>
+        </div>
+        <table id="tbAud">
+          <thead><tr><th>Fecha / Hora</th><th>Usuario</th><th>Acción</th><th>IP</th><th>Resultado</th></tr></thead>
+          <tbody id="tbAudBody"><tr class="empty-row"><td colspan="5">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── CAPACITACIONES ── -->
+    <div id="sec-capacitaciones" class="section">
+      <div class="table-wrap" style="margin-bottom:1.5rem">
+        <div class="table-header">
+          <h3>🎓 Catálogo de capacitaciones</h3>
+          <div class="table-actions">
+            <button class="btn btn-primary" onclick="abrirModal('modalCap')">+ Nueva</button>
+          </div>
+        </div>
+        <table id="tbCap">
+          <thead><tr><th>Nombre</th><th>Obligatoria</th><th>Inicio</th><th>Fin</th><th>Acciones</th></tr></thead>
+          <tbody id="tbCapBody"><tr class="empty-row"><td colspan="5">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <h3>📊 Progreso de empleados</h3>
+          <div class="table-actions">
+            <button class="btn btn-primary" onclick="abrirModal('modalEmpCap')">+ Inscribir empleado</button>
+          </div>
+        </div>
+        <table id="tbEmpCap">
+          <thead><tr><th>Empleado</th><th>Capacitación</th><th>Estado</th><th>Completado</th><th>Acciones</th></tr></thead>
+          <tbody id="tbEmpCapBody"><tr class="empty-row"><td colspan="5">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── ÁREAS ── -->
+    <div id="sec-areas" class="section">
+      <div class="table-wrap">
+        <div class="table-header">
+          <h3>🏢 Áreas organizacionales</h3>
+          <div class="table-actions">
+            <button class="btn btn-primary" onclick="abrirModal('modalArea')">+ Nueva área</button>
+          </div>
+        </div>
+        <table id="tbArea">
+          <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Empleados</th></tr></thead>
+          <tbody id="tbAreaBody"><tr class="empty-row"><td colspan="4">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- ═══ MODALES ═══ -->
+
+<!-- Dispositivo -->
+<div class="modal-overlay" id="modalDisp">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="titDisp">Nuevo dispositivo</h3>
+      <button class="modal-close" onclick="cerrarModal('modalDisp')">✕</button>
+    </div>
+    <input type="hidden" id="dispId"/>
+    <div class="form-row">
+      <div class="form-field"><label>Tipo</label>
+        <select id="dispTipo">
+          <option value="laptop">Laptop</option><option value="desktop">Desktop</option>
+          <option value="celular">Celular</option><option value="tablet">Tablet</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Estado</label>
+        <select id="dispEstado">
+          <option value="activo">Activo</option><option value="inactivo">Inactivo</option>
+          <option value="mantenimiento">Mantenimiento</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Marca</label><input type="text" id="dispMarca" placeholder="Dell, HP, Apple..."/></div>
+      <div class="form-field"><label>Modelo</label><input type="text" id="dispModelo" placeholder="Latitude 5520..."/></div>
+    </div>
+    <div class="form-field"><label>Serial</label><input type="text" id="dispSerial" placeholder="SN-XXXXXXXX"/></div>
+    <div class="form-field"><label>Asignar a empleado</label>
+      <select id="dispEmp"><option value="">— Sin asignar —</option></select>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalDisp')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarDispositivo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sistema -->
+<div class="modal-overlay" id="modalSis">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Nuevo sistema</h3>
+      <button class="modal-close" onclick="cerrarModal('modalSis')">✕</button>
+    </div>
+    <div class="form-field"><label>Nombre del sistema</label><input type="text" id="sisNombre" placeholder="Ej: Sistema de Nómina"/></div>
+    <div class="form-field"><label>Descripción</label><textarea id="sisDesc" placeholder="Descripción breve..."></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalSis')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarSistema()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Acceso -->
+<div class="modal-overlay" id="modalAcc">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Asignar acceso a sistema</h3>
+      <button class="modal-close" onclick="cerrarModal('modalAcc')">✕</button>
+    </div>
+    <div class="form-field"><label>Empleado</label><select id="accEmp"><option value="">— Seleccionar —</option></select></div>
+    <div class="form-field"><label>Sistema</label><select id="accSis"><option value="">— Seleccionar —</option></select></div>
+    <div class="form-row">
+      <div class="form-field"><label>Nivel de acceso</label>
+        <select id="accNivel">
+          <option value="lectura">Lectura</option><option value="escritura">Escritura</option>
+          <option value="admin">Administrador</option><option value="total">Total</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Fecha asignación</label><input type="date" id="accFecha"/></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalAcc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarAcceso()">Asignar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Incidente -->
+<div class="modal-overlay" id="modalInc">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Reportar incidente</h3>
+      <button class="modal-close" onclick="cerrarModal('modalInc')">✕</button>
+    </div>
+    <div class="form-field"><label>Tipo de incidente</label>
+      <select id="incTipo">
+        <option value="acceso_no_autorizado">Acceso no autorizado</option>
+        <option value="malware">Malware / Virus</option>
+        <option value="phishing">Phishing</option>
+        <option value="fuga_datos">Fuga de datos</option>
+        <option value="dispositivo_perdido">Dispositivo perdido/robado</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="form-field"><label>Descripción</label><textarea id="incDesc" placeholder="Describe el incidente con el mayor detalle posible..."></textarea></div>
+    <div class="form-row">
+      <div class="form-field"><label>Empleado involucrado</label><select id="incEmp"><option value="">— Seleccionar —</option></select></div>
+      <div class="form-field"><label>Dispositivo (opcional)</label><select id="incDisp"><option value="">— Ninguno —</option></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalInc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarIncidente()">Reportar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cambiar estado incidente -->
+<div class="modal-overlay" id="modalIncEstado">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Actualizar estado del incidente</h3>
+      <button class="modal-close" onclick="cerrarModal('modalIncEstado')">✕</button>
+    </div>
+    <input type="hidden" id="incEstadoId"/>
+    <div class="form-field"><label>Nuevo estado</label>
+      <select id="incNuevoEstado">
+        <option value="abierto">Abierto</option>
+        <option value="en_proceso">En proceso</option>
+        <option value="cerrado">Cerrado</option>
+      </select>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalIncEstado')">Cancelar</button>
+      <button class="btn btn-primary" onclick="actualizarEstadoInc()">Actualizar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Capacitación -->
+<div class="modal-overlay" id="modalCap">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Nueva capacitación</h3>
+      <button class="modal-close" onclick="cerrarModal('modalCap')">✕</button>
+    </div>
+    <div class="form-field"><label>Nombre</label><input type="text" id="capNombre" placeholder="Nombre del curso"/></div>
+    <div class="form-field"><label>Descripción</label><textarea id="capDesc" placeholder="Descripción..."></textarea></div>
+    <div class="form-row">
+      <div class="form-field"><label>Fecha inicio</label><input type="date" id="capInicio"/></div>
+      <div class="form-field"><label>Fecha fin</label><input type="date" id="capFin"/></div>
+    </div>
+    <div class="form-field">
+      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <input type="checkbox" id="capOblig" style="width:auto"/> Obligatoria
+      </label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalCap')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCapacitacion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inscribir empleado a capacitación -->
+<div class="modal-overlay" id="modalEmpCap">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Inscribir empleado</h3>
+      <button class="modal-close" onclick="cerrarModal('modalEmpCap')">✕</button>
+    </div>
+    <div class="form-field"><label>Empleado</label><select id="ecEmp"><option value="">— Seleccionar —</option></select></div>
+    <div class="form-field"><label>Capacitación</label><select id="ecCap"><option value="">— Seleccionar —</option></select></div>
+    <div class="form-row">
+      <div class="form-field"><label>Estado</label>
+        <select id="ecEstado">
+          <option value="pendiente">Pendiente</option>
+          <option value="en_proceso">En proceso</option>
+          <option value="completado">Completado</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Fecha completado</label><input type="date" id="ecFecha"/></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalEmpCap')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEmpCap()">Inscribir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Área -->
+<div class="modal-overlay" id="modalArea">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Nueva área</h3>
+      <button class="modal-close" onclick="cerrarModal('modalArea')">✕</button>
+    </div>
+    <div class="form-field"><label>Nombre del área</label><input type="text" id="areaNombre" placeholder="Ej: Contabilidad"/></div>
+    <div class="form-field"><label>Descripción</label><textarea id="areaDesc" placeholder="Descripción..."></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="cerrarModal('modalArea')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarArea()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   ESTADO
+═══════════════════════════════════════════════════ */
+const SESSION = JSON.parse(sessionStorage.getItem('sw_session') || '{}');
+let ALL_EMPLEADOS = [], ALL_DISPOSITIVOS = [], ALL_SISTEMAS = [], ALL_CAPACITACIONES = [];
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Verificar sesión
+  if (!SESSION.id_empleado) {
+    const nombre = prompt('Para la demo ingresa tu nombre:') || 'Usuario';
+    SESSION.id_empleado = 1;
+    SESSION.nombre = nombre;
+    SESSION.rol = 'admin';
+    sessionStorage.setItem('sw_session', JSON.stringify(SESSION));
+  }
+  document.getElementById('sbNombre').textContent = SESSION.nombre || 'Usuario';
+  document.getElementById('sbRol').textContent    = SESSION.rol   || 'usuario';
+
+  cargarHome();
+});
+
+/* ═══════════════════════════════════════════════════
+   NAVEGACIÓN
+═══════════════════════════════════════════════════ */
+const PAGES = {
+  home:          { title: 'Dashboard',          bread: 'SecureWork / Inicio',         load: cargarHome },
+  empleados:     { title: 'Empleados',          bread: 'Gestión / Empleados',         load: cargarEmpleados },
+  dispositivos:  { title: 'Dispositivos',       bread: 'Gestión / Dispositivos',      load: cargarDispositivos },
+  sistemas:      { title: 'Sistemas & Accesos', bread: 'Gestión / Sistemas',          load: cargarSistemas },
+  incidentes:    { title: 'Incidentes',         bread: 'Seguridad / Incidentes',      load: cargarIncidentes },
+  auditoria:     { title: 'Auditoría',          bread: 'Seguridad / Auditoría',       load: cargarAuditoria },
+  capacitaciones:{ title: 'Capacitaciones',     bread: 'Formación / Capacitaciones',  load: cargarCapacitaciones },
+  areas:         { title: 'Áreas',              bread: 'Config. / Áreas',             load: cargarAreas },
+};
+
+function goTo(page) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('sec-' + page).classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(i => {
+    if (i.getAttribute('onclick')?.includes(`'${page}'`)) i.classList.add('active');
+  });
+  const p = PAGES[page];
+  document.getElementById('pageTitle').textContent      = p.title;
+  document.getElementById('pageBreadcrumb').textContent = p.bread;
+  if (p.load) p.load();
+}
+
+/* ═══════════════════════════════════════════════════
+   API
+═══════════════════════════════════════════════════ */
+async function api(method, url, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  return r.json();
+}
+const GET  = url       => api('GET', url);
+const POST = (url, b)  => api('POST', url, b);
+const PUT  = (url, b)  => api('PUT',  url, b);
+const DEL  = url       => api('DELETE', url);
+
+/* ═══════════════════════════════════════════════════
+   TOAST / MODAL
+═══════════════════════════════════════════════════ */
+let toastT;
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.className = '', 3500);
+}
+function abrirModal(id) { document.getElementById(id).classList.add('open'); }
+function cerrarModal(id){ document.getElementById(id).classList.remove('open'); }
+
+/* ═══════════════════════════════════════════════════
+   FILTRO TABLA
+═══════════════════════════════════════════════════ */
+function filtrarTabla(tbId, q) {
+  const rows = document.querySelectorAll(`#${tbId} tbody tr`);
+  q = q.toLowerCase();
+  rows.forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   BADGES
+═══════════════════════════════════════════════════ */
+function badgeEstado(estado) {
+  const m = { activo:'green', inactivo:'red', mantenimiento:'yellow',
+              abierto:'red', en_proceso:'yellow', cerrado:'green',
+              pendiente:'gray', completado:'green' };
+  return `<span class="badge badge-${m[estado]||'gray'}">${estado}</span>`;
+}
+function badgeOblig(v) {
+  return v ? `<span class="badge badge-red">Sí</span>` : `<span class="badge badge-gray">No</span>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   HOME
+═══════════════════════════════════════════════════ */
+async function cargarHome() {
+  try {
+    const d = await GET('/api/dashboard/resumen');
+    if (!d.ok) return;
+    const r = d.resumen;
+    document.getElementById('kpiEmp').textContent  = r.empleados_activos ?? '—';
+    document.getElementById('kpiDisp').textContent = r.dispositivos      ?? '—';
+    document.getElementById('kpiInc').textContent  = r.incidentes_abiertos ?? '—';
+    document.getElementById('kpiCap').textContent  = r.capacitaciones    ?? '—';
+    document.getElementById('kpiSis').textContent  = r.sistemas          ?? '—';
+    document.getElementById('kpiAcc').textContent  = r.accesos_activos   ?? '—';
+    document.getElementById('badgeInc').textContent = r.incidentes_abiertos ?? '0';
+
+    // Actividad reciente
+    const al = document.getElementById('actividadList');
+    if (d.actividad && d.actividad.length) {
+      al.innerHTML = d.actividad.map(a => `
+        <div class="activity-item">
+          <div class="activity-dot" style="background:${a.exitoso ? 'var(--success)' : 'var(--danger)'}"></div>
+          <div>
+            <div>${a.accion} — ${a.correo || '?'}</div>
+            <div class="activity-time">${a.fecha_hora} · ${a.ip_origen || ''}</div>
+          </div>
+        </div>`).join('');
+    } else {
+      al.innerHTML = '<div style="color:var(--muted);font-size:.82rem">Sin actividad reciente.</div>';
+    }
+
+    // Incidentes abiertos
+    const ih = document.getElementById('incidentesHome');
+    if (d.incidentes && d.incidentes.length) {
+      ih.innerHTML = d.incidentes.map(i => `
+        <div class="activity-item">
+          <div class="activity-dot" style="background:var(--warn)"></div>
+          <div>
+            <div>${i.tipo_incidente} — ${i.nombre || '?'}</div>
+            <div class="activity-time">${i.fecha_reporte}</div>
+          </div>
+        </div>`).join('');
+    } else {
+      ih.innerHTML = '<div style="color:var(--muted);font-size:.82rem">Sin incidentes abiertos. ✅</div>';
+    }
+  } catch { toast('Error al cargar el dashboard', 'bad'); }
+}
+
+/* ═══════════════════════════════════════════════════
+   EMPLEADOS
+═══════════════════════════════════════════════════ */
+async function cargarEmpleados() {
+  const d = await GET('/api/empleados');
+  ALL_EMPLEADOS = d.empleados || [];
+  const tb = document.getElementById('tbEmpBody');
+  if (!ALL_EMPLEADOS.length) {
+    tb.innerHTML = '<tr class="empty-row"><td colspan="7">Sin empleados registrados.</td></tr>';
+    return;
+  }
+  tb.innerHTML = ALL_EMPLEADOS.map(e => `
+    <tr>
+      <td><strong>${e.nombre} ${e.apellido}</strong></td>
+      <td>${e.correo}</td>
+      <td>${e.cargo}</td>
+      <td>${e.nombre_area || '—'}</td>
+      <td><span class="badge badge-blue">${e.rol}</span></td>
+      <td>${badgeEstado(e.estado)}</td>
+      <td>${e.fecha_ingreso || '—'}</td>
+    </tr>`).join('');
+  poblarSelectEmpleados();
+}
+
+function poblarSelectEmpleados() {
+  const opts = ALL_EMPLEADOS.map(e =>
+    `<option value="${e.id_empleado}">${e.nombre} ${e.apellido}</option>`).join('');
+  ['dispEmp','incEmp','accEmp','ecEmp'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = (id === 'dispEmp' ? '<option value="">— Sin asignar —</option>' : '<option value="">— Seleccionar —</option>') + opts;
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   DISPOSITIVOS
+═══════════════════════════════════════════════════ */
+async function cargarDispositivos() {
+  if (!ALL_EMPLEADOS.length) await cargarEmpleados();
+  const d = await GET('/api/dispositivos');
+  ALL_DISPOSITIVOS = d.dispositivos || [];
+  const tb = document.getElementById('tbDispBody');
+  if (!ALL_DISPOSITIVOS.length) {
+    tb.innerHTML = '<tr class="empty-row"><td colspan="6">Sin dispositivos registrados.</td></tr>';
+    return;
+  }
+  tb.innerHTML = ALL_DISPOSITIVOS.map(d => `
+    <tr>
+      <td><span class="badge badge-blue">${d.tipo_dispositivo}</span></td>
+      <td>${d.marca} ${d.modelo}</td>
+      <td><code style="font-size:.75rem;color:var(--accent)">${d.serial}</code></td>
+      <td>${d.nombre_empleado || '<span style="color:var(--muted)">Sin asignar</span>'}</td>
+      <td>${badgeEstado(d.estado)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="editarDispositivo(${d.id_dispositivo})">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="eliminarDispositivo(${d.id_dispositivo})">🗑</button>
+      </td>
+    </tr>`).join('');
+  // Poblar select incidente dispositivos
+  const sel = document.getElementById('incDisp');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Ninguno —</option>' +
+      ALL_DISPOSITIVOS.map(d => `<option value="${d.id_dispositivo}">${d.marca} ${d.modelo} (${d.serial})</option>`).join('');
+  }
+}
+
+async function guardarDispositivo() {
+  const id     = document.getElementById('dispId').value;
+  const body   = {
+    tipo_dispositivo: document.getElementById('dispTipo').value,
+    marca:  document.getElementById('dispMarca').value.trim(),
+    modelo: document.getElementById('dispModelo').value.trim(),
+    serial: document.getElementById('dispSerial').value.trim(),
+    estado: document.getElementById('dispEstado').value,
+    id_empleado: document.getElementById('dispEmp').value || null,
+  };
+  if (!body.marca || !body.modelo || !body.serial) { toast('Completa todos los campos', 'bad'); return; }
+  const d = id ? await PUT(`/api/dispositivos/${id}`, body) : await POST('/api/dispositivos', body);
+  if (d.ok) { toast(id ? 'Dispositivo actualizado' : 'Dispositivo registrado'); cerrarModal('modalDisp'); cargarDispositivos(); }
+  else toast(d.msg || 'Error', 'bad');
+}
+
+async function editarDispositivo(id) {
+  const disp = ALL_DISPOSITIVOS.find(d => d.id_dispositivo == id);
+  if (!disp) return;
+  document.getElementById('dispId').value    = disp.id_dispositivo;
+  document.getElementById('dispTipo').value  = disp.tipo_dispositivo;
+  document.getElementById('dispMarca').value = disp.marca;
+  document.getElementById('dispModelo').value= disp.modelo;
+  document.getElementById('dispSerial').value= disp.serial;
+  document.getElementById('dispEstado').value= disp.estado;
+  document.getElementById('dispEmp').value   = disp.id_empleado || '';
+  document.getElementById('titDisp').textContent = 'Editar dispositivo';
+  abrirModal('modalDisp');
+}
+
+async function eliminarDispositivo(id) {
+  if (!confirm('¿Eliminar este dispositivo?')) return;
+  const d = await DEL(`/api/dispositivos/${id}`);
+  if (d.ok) { toast('Dispositivo eliminado', 'warn'); cargarDispositivos(); }
+  else toast(d.msg, 'bad');
+}
+
+/* ═══════════════════════════════════════════════════
+   SISTEMAS & ACCESOS
+═══════════════════════════════════════════════════ */
+async function cargarSistemas() {
+  if (!ALL_EMPLEADOS.length) await cargarEmpleados();
+  const [ds, da] = await Promise.all([GET('/api/sistemas'), GET('/api/accesos')]);
+  ALL_SISTEMAS = ds.sistemas || [];
+
+  // Tabla sistemas
+  const tbs = document.getElementById('tbSisBody');
+  tbs.innerHTML = ALL_SISTEMAS.length
+    ? ALL_SISTEMAS.map(s => `<tr>
+        <td><strong>${s.nombre_sistema}</strong></td>
+        <td>${s.descripcion || '—'}</td>
+        <td><span class="badge badge-blue">${s.total_accesos || 0}</span></td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="3">Sin sistemas.</td></tr>';
+
+  // Tabla accesos
+  const accesos = da.accesos || [];
+  const tba = document.getElementById('tbAccBody');
+  tba.innerHTML = accesos.length
+    ? accesos.map(a => `<tr>
+        <td>${a.nombre_empleado}</td>
+        <td>${a.nombre_sistema}</td>
+        <td><span class="badge badge-blue">${a.nivel_acceso}</span></td>
+        <td>${a.fecha_asignacion || '—'}</td>
+        <td>${badgeEstado(a.estado)}</td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="revocarAcceso(${a.id_acceso})">Revocar</button>
+        </td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="6">Sin accesos asignados.</td></tr>';
+
+  // Poblar select sistemas en modal acceso
+  const sel = document.getElementById('accSis');
+  if (sel) sel.innerHTML = '<option value="">— Seleccionar —</option>' +
+    ALL_SISTEMAS.map(s => `<option value="${s.id_sistema}">${s.nombre_sistema}</option>`).join('');
+
+  // Poblar capacitaciones select
+  const ds2 = await GET('/api/capacitaciones');
+  ALL_CAPACITACIONES = ds2.capacitaciones || [];
+  ['ecCap'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<option value="">— Seleccionar —</option>' +
+      ALL_CAPACITACIONES.map(c => `<option value="${c.id_capacitacion}">${c.nombre}</option>`).join('');
+  });
+}
+
+async function guardarSistema() {
+  const nombre = document.getElementById('sisNombre').value.trim();
+  const desc   = document.getElementById('sisDesc').value.trim();
+  if (!nombre) { toast('Ingresa el nombre del sistema', 'bad'); return; }
+  const d = await POST('/api/sistemas', { nombre_sistema: nombre, descripcion: desc });
+  if (d.ok) { toast('Sistema registrado'); cerrarModal('modalSis'); cargarSistemas(); }
+  else toast(d.msg, 'bad');
+}
+
+async function guardarAcceso() {
+  const body = {
+    id_empleado: document.getElementById('accEmp').value,
+    id_sistema:  document.getElementById('accSis').value,
+    nivel_acceso: document.getElementById('accNivel').value,
+    fecha_asignacion: document.getElementById('accFecha').value,
+  };
+  if (!body.id_empleado || !body.id_sistema || !body.fecha_asignacion) {
+    toast('Completa todos los campos', 'bad'); return;
+  }
+  const d = await POST('/api/accesos', body);
+  if (d.ok) { toast('Acceso asignado'); cerrarModal('modalAcc'); cargarSistemas(); }
+  else toast(d.msg, 'bad');
+}
+
+async function revocarAcceso(id) {
+  if (!confirm('¿Revocar este acceso?')) return;
+  const d = await PUT(`/api/accesos/${id}`, { estado: 'inactivo' });
+  if (d.ok) { toast('Acceso revocado', 'warn'); cargarSistemas(); }
+  else toast(d.msg, 'bad');
+}
+
+/* ═══════════════════════════════════════════════════
+   INCIDENTES
+═══════════════════════════════════════════════════ */
+async function cargarIncidentes() {
+  if (!ALL_EMPLEADOS.length)   await cargarEmpleados();
+  if (!ALL_DISPOSITIVOS.length) await cargarDispositivos();
+  const d = await GET('/api/incidentes');
+  const inc = d.incidentes || [];
+  const tb  = document.getElementById('tbIncBody');
+  tb.innerHTML = inc.length
+    ? inc.map(i => `<tr>
+        <td><span class="badge badge-yellow">${i.tipo_incidente.replace(/_/g,' ')}</span></td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${i.descripcion}">${i.descripcion}</td>
+        <td>${i.nombre_empleado || '—'}</td>
+        <td>${i.nombre_dispositivo || '—'}</td>
+        <td>${i.fecha_reporte?.substring(0,16) || '—'}</td>
+        <td>${badgeEstado(i.estado)}</td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="abrirCambioEstado(${i.id_incidente},'${i.estado}')">Estado</button>
+        </td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="7">Sin incidentes registrados. ✅</td></tr>';
+}
+
+async function guardarIncidente() {
+  const body = {
+    tipo_incidente: document.getElementById('incTipo').value,
+    descripcion:    document.getElementById('incDesc').value.trim(),
+    id_empleado:    document.getElementById('incEmp').value,
+    id_dispositivo: document.getElementById('incDisp').value || null,
+  };
+  if (!body.descripcion || !body.id_empleado) { toast('Completa todos los campos', 'bad'); return; }
+  const d = await POST('/api/incidentes', body);
+  if (d.ok) { toast('Incidente reportado'); cerrarModal('modalInc'); cargarIncidentes(); cargarHome(); }
+  else toast(d.msg, 'bad');
+}
+
+function abrirCambioEstado(id, estadoActual) {
+  document.getElementById('incEstadoId').value         = id;
+  document.getElementById('incNuevoEstado').value      = estadoActual;
+  abrirModal('modalIncEstado');
+}
+
+async function actualizarEstadoInc() {
+  const id     = document.getElementById('incEstadoId').value;
+  const estado = document.getElementById('incNuevoEstado').value;
+  const d = await PUT(`/api/incidentes/${id}`, { estado, id_empleado: SESSION.id_empleado });
+  if (d.ok) { toast('Estado actualizado'); cerrarModal('modalIncEstado'); cargarIncidentes(); cargarHome(); }
+  else toast(d.msg, 'bad');
+}
+
+/* ═══════════════════════════════════════════════════
+   AUDITORÍA
+═══════════════════════════════════════════════════ */
+async function cargarAuditoria() {
+  const d  = await GET('/api/auditoria');
+  const tb = document.getElementById('tbAudBody');
+  const rows = d.registros || [];
+  tb.innerHTML = rows.length
+    ? rows.map(r => `<tr>
+        <td>${r.fecha_hora?.substring(0,16) || '—'}</td>
+        <td>${r.correo || '—'}</td>
+        <td><code style="font-size:.75rem;color:var(--accent)">${r.accion}</code></td>
+        <td>${r.ip_origen || '—'}</td>
+        <td>${r.exitoso ? '<span class="badge badge-green">Exitoso</span>' : '<span class="badge badge-red">Fallido</span>'}</td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="5">Sin registros.</td></tr>';
+}
+
+/* ═══════════════════════════════════════════════════
+   CAPACITACIONES
+═══════════════════════════════════════════════════ */
+async function cargarCapacitaciones() {
+  if (!ALL_EMPLEADOS.length) await cargarEmpleados();
+  const [dc, dec] = await Promise.all([GET('/api/capacitaciones'), GET('/api/empleado-capacitacion')]);
+  ALL_CAPACITACIONES = dc.capacitaciones || [];
+
+  // Tabla catálogo
+  const tb1 = document.getElementById('tbCapBody');
+  tb1.innerHTML = ALL_CAPACITACIONES.length
+    ? ALL_CAPACITACIONES.map(c => `<tr>
+        <td><strong>${c.nombre}</strong><br><small style="color:var(--sub)">${c.descripcion || ''}</small></td>
+        <td>${badgeOblig(c.obligatoria)}</td>
+        <td>${c.fecha_inicio || '—'}</td>
+        <td>${c.fecha_fin || '—'}</td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="eliminarCapacitacion(${c.id_capacitacion})">🗑</button>
+        </td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="5">Sin capacitaciones.</td></tr>';
+
+  // Poblar selects modales
+  const ecCapSel = document.getElementById('ecCap');
+  if (ecCapSel) ecCapSel.innerHTML = '<option value="">— Seleccionar —</option>' +
+    ALL_CAPACITACIONES.map(c => `<option value="${c.id_capacitacion}">${c.nombre}</option>`).join('');
+
+  // Tabla progreso
+  const progresos = dec.progresos || [];
+  const tb2 = document.getElementById('tbEmpCapBody');
+  tb2.innerHTML = progresos.length
+    ? progresos.map(p => `<tr>
+        <td>${p.nombre_empleado}</td>
+        <td>${p.nombre_capacitacion}</td>
+        <td>${badgeEstado(p.estado)}</td>
+        <td>${p.fecha_completado || '—'}</td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="completarEmpCap(${p.id_empleado},${p.id_capacitacion})">✅ Completar</button>
+        </td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="5">Sin inscripciones.</td></tr>';
+}
+
+async function guardarCapacitacion() {
+  const body = {
+    nombre:      document.getElementById('capNombre').value.trim(),
+    descripcion: document.getElementById('capDesc').value.trim(),
+    obligatoria: document.getElementById('capOblig').checked ? 1 : 0,
+    fecha_inicio: document.getElementById('capInicio').value,
+    fecha_fin:    document.getElementById('capFin').value,
+  };
+  if (!body.nombre || !body.fecha_inicio || !body.fecha_fin) { toast('Completa los campos obligatorios', 'bad'); return; }
+  const d = await POST('/api/capacitaciones', body);
+  if (d.ok) { toast('Capacitación creada'); cerrarModal('modalCap'); cargarCapacitaciones(); }
+  else toast(d.msg, 'bad');
+}
+
+async function guardarEmpCap() {
+  const body = {
+    id_empleado:     document.getElementById('ecEmp').value,
+    id_capacitacion: document.getElementById('ecCap').value,
+    estado:          document.getElementById('ecEstado').value,
+    fecha_completado: document.getElementById('ecFecha').value || null,
+  };
+  if (!body.id_empleado || !body.id_capacitacion) { toast('Selecciona empleado y capacitación', 'bad'); return; }
+  const d = await POST('/api/empleado-capacitacion', body);
+  if (d.ok) { toast('Empleado inscrito'); cerrarModal('modalEmpCap'); cargarCapacitaciones(); }
+  else toast(d.msg, 'bad');
+}
+
+async function completarEmpCap(idEmp, idCap) {
+  const fecha = new Date().toISOString().split('T')[0];
+  const d = await PUT(`/api/empleado-capacitacion/${idEmp}/${idCap}`, { estado: 'completado', fecha_completado: fecha });
+  if (d.ok) { toast('Marcado como completado ✅'); cargarCapacitaciones(); }
+  else toast(d.msg, 'bad');
+}
+
+async function eliminarCapacitacion(id) {
+  if (!confirm('¿Eliminar esta capacitación?')) return;
+  const d = await DEL(`/api/capacitaciones/${id}`);
+  if (d.ok) { toast('Eliminada', 'warn'); cargarCapacitaciones(); }
+  else toast(d.msg, 'bad');
+}
+
+/* ═══════════════════════════════════════════════════
+   ÁREAS
+═══════════════════════════════════════════════════ */
+async function cargarAreas() {
+  const d  = await GET('/api/areas-detalle');
+  const tb = document.getElementById('tbAreaBody');
+  const areas = d.areas || [];
+  tb.innerHTML = areas.length
+    ? areas.map(a => `<tr>
+        <td>${a.id_area}</td>
+        <td><strong>${a.nombre_area}</strong></td>
+        <td>${a.descripcion || '—'}</td>
+        <td><span class="badge badge-blue">${a.total_empleados || 0}</span></td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="4">Sin áreas.</td></tr>';
+}
+
+async function guardarArea() {
+  const nombre = document.getElementById('areaNombre').value.trim();
+  const desc   = document.getElementById('areaDesc').value.trim();
+  if (!nombre) { toast('Ingresa el nombre del área', 'bad'); return; }
+  const d = await POST('/api/areas', { nombre_area: nombre, descripcion: desc });
+  if (d.ok) { toast('Área creada'); cerrarModal('modalArea'); cargarAreas(); }
+  else toast(d.msg, 'bad');
+}
+
+/* ═══════════════════════════════════════════════════
+   LOGOUT
+═══════════════════════════════════════════════════ */
+async function logout() {
+  await fetch('/api/logout', { method: 'POST' });
+  sessionStorage.clear();
+  window.location.href = '/';
+}
+
+/* ── Set fecha por defecto ── */
+document.getElementById('accFecha').value = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
